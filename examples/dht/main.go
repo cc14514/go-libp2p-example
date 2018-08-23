@@ -19,7 +19,6 @@ type Node struct {
 }
 
 func NewLocalNode(port int) *Node {
-	// 创建两个 host 对象
 	h, _ := basichost.NewHost(context.Background(), helper.GenSwarm(port), &basichost.HostOpts{})
 	d, _ := dht.New(context.Background(), h)
 	return &Node{h, d}
@@ -34,7 +33,7 @@ func (self *Node) Bootstrap(ctx context.Context) error {
 	return self.Routing.Bootstrap(ctx)
 }
 
-func  (self *Node) Connect(ctx context.Context, bb *Node) {
+func (self *Node) Connect(ctx context.Context, bb *Node) {
 	a, b := self.Host, bb.Host
 	idB := b.ID()
 	addrB := b.Peerstore().Addrs(idB)
@@ -90,11 +89,9 @@ func main() {
 	fmt.Println(5, n5.Host.ID().Pretty(), showPeerPretty(n5.Host.Peerstore().Peers()))
 
 	err := n5.Bootstrap(context.Background())
-	fmt.Println("---->", err)
-	for i := 0; i < 1; i++ {
-		<-time.After(time.Second * 3)
-		fmt.Println(4, n4.Host.ID().Pretty(), showPeerPretty(n4.Host.Peerstore().Peers()))
-		fmt.Println(5, n5.Host.ID().Pretty(), showPeerPretty(n5.Host.Peerstore().Peers()))
-	}
+	fmt.Println("----> bootstrap:", err)
+	<-time.After(time.Second * 3)
+	fmt.Println(4, n4.Host.ID().Pretty(), showPeerPretty(n4.Host.Peerstore().Peers()))
+	fmt.Println(5, n5.Host.ID().Pretty(), showPeerPretty(n5.Host.Peerstore().Peers()))
 
 }
