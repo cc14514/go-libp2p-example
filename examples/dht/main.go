@@ -1,16 +1,17 @@
 package main
 
 import (
+	"bytes"
 	"context"
-	"gx/ipfs/QmUDzeFgYrRmHL2hUB6NZmqcBVQtUzETwmFRUc9onfSSHr/go-libp2p/p2p/host/basic"
-	"github.com/cc14514/go-libp2p-example/helper"
-	"gx/ipfs/QmQ1hwb95uSSZR8jSPJysnfHxBDQAykSXsmz5TwTzxjq2Z/go-libp2p-host"
 	"fmt"
+	"gx/ipfs/QmQ1hwb95uSSZR8jSPJysnfHxBDQAykSXsmz5TwTzxjq2Z/go-libp2p-host"
+	"gx/ipfs/QmUDzeFgYrRmHL2hUB6NZmqcBVQtUzETwmFRUc9onfSSHr/go-libp2p/p2p/host/basic"
 	"gx/ipfs/QmYLXCWN2myozZpx8Wx4UjrRuQuhY3YtWoMi6SHaXii6aM/go-libp2p-peerstore"
 	"gx/ipfs/QmZAsayEQakfFbHyakgHRKHwBTWrwuSBTfaMyxJZUG97VC/go-libp2p-kad-dht"
 	"gx/ipfs/QmcZSzKEM5yDfpZbeEEZaVmaZ1zXm6JWTbrQZSB8hCVPzk/go-libp2p-peer"
-	"bytes"
 	"time"
+
+	"github.com/cc14514/go-libp2p-example/helper"
 )
 
 type Node struct {
@@ -82,7 +83,7 @@ func main() {
 	n3.Connect(context.Background(), n4)
 	n4.Connect(context.Background(), n5)
 
-	fmt.Println(1, n1.Host.ID().Pretty(), showPeerPretty(n1.Host.Peerstore().Peers()))
+	fmt.Println(1, n1.Host.Network().ListenAddresses(), showPeerPretty(n1.Host.Peerstore().Peers()))
 	fmt.Println(2, n2.Host.ID().Pretty(), showPeerPretty(n2.Host.Peerstore().Peers()))
 	fmt.Println(3, n3.Host.ID().Pretty(), showPeerPretty(n3.Host.Peerstore().Peers()))
 	fmt.Println(4, n4.Host.ID().Pretty(), showPeerPretty(n4.Host.Peerstore().Peers()))

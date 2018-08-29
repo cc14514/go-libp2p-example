@@ -17,6 +17,18 @@
       "hash": "QmZAsayEQakfFbHyakgHRKHwBTWrwuSBTfaMyxJZUG97VC",
       "name": "go-libp2p-kad-dht",
       "version": "4.3.1"
+    },
+    {
+      "author": "why",
+      "hash": "QmWnUZVLLk2HKpZAMEsqW3EFNku1xGzG7bvvAHeEQQoi2V",
+      "name": "go-ipfs-addr",
+      "version": "0.1.19"
+    },
+    {
+      "author": "why",
+      "hash": "QmWnUZVLLk2HKpZAMEsqW3EFNku1xGzG7bvvAHeEQQoi2V",
+      "name": "go-ipfs-addr",
+      "version": "0.1.19"
     }
   ],
   "gxVersion": "0.12.1",

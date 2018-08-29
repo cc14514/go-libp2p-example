@@ -17,12 +17,8 @@ import (
 	"gx/ipfs/QmWzjXAyBTygw6CeCTUnhJzhFucfxY5FJivSoiGuiSbPjS/go-smux-multistream"
 )
 
-func GenSwarm(port int) *swarm.Swarm {
-	priv, pub, err := ic.GenerateKeyPairWithReader(ic.RSA, 2048, rand.Reader)
-	if err != nil {
-		panic(err) // oh no!
-	}
-
+func GenSwarmByKey(key ic.PrivKey, port int) *swarm.Swarm {
+	priv, pub := key, key.GetPublic()
 	pid, err := peer.IDFromPublicKey(pub)
 	if err != nil {
 		panic(err)
@@ -38,10 +34,18 @@ func GenSwarm(port int) *swarm.Swarm {
 	if err := s.AddTransport(tcpTransport); err != nil {
 		fmt.Println(err)
 	}
+	// TODO 多地址
 	maddr, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", port))
 	s.Listen(maddr)
 	s.Peerstore().AddAddrs(pid, s.ListenAddresses(), peerstore.PermanentAddrTTL)
 	return s
+}
+func GenSwarm(port int) *swarm.Swarm {
+	priv, _, err := ic.GenerateKeyPairWithReader(ic.RSA, 2048, rand.Reader)
+	if err != nil {
+		panic(err) // oh no!
+	}
+	return GenSwarmByKey(priv, port)
 }
 
 // GenUpgrader creates a new connection upgrader for use with this swarm.
@@ -62,4 +66,3 @@ func GenUpgrader(n *swarm.Swarm) *tptu.Upgrader {
 		Filters: n.Filters,
 	}
 }
-
