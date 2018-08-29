@@ -6,6 +6,7 @@ import (
 	"context"
 	ma "gx/ipfs/QmYmsdtJ3HsodkePE3eU3TsCaP2YvPZJ4LoXnNkDE5Tpt7/go-multiaddr"
 	"fmt"
+	"time"
 )
 
 var (
@@ -26,4 +27,13 @@ func main() {
 	err = node.Connect(context.Background(),string(id),[]ma.Multiaddr{addr.Transport()})
 	fmt.Println("myid :",node.Host.ID().Pretty())
 	fmt.Println("connect :",err)
+
+	go func(){
+		for {
+			<- time.After(time.Second*3)
+			fmt.Println("peers->",node.Host.Network().Peers())
+		}
+	}()
+	s := make(chan int)
+	<- s
 }
