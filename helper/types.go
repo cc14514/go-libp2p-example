@@ -2,7 +2,6 @@ package helper
 
 import (
 	"context"
-	"fmt"
 	"gx/ipfs/QmQ1hwb95uSSZR8jSPJysnfHxBDQAykSXsmz5TwTzxjq2Z/go-libp2p-host"
 	"gx/ipfs/QmUDzeFgYrRmHL2hUB6NZmqcBVQtUzETwmFRUc9onfSSHr/go-libp2p/p2p/host/basic"
 	"gx/ipfs/QmYLXCWN2myozZpx8Wx4UjrRuQuhY3YtWoMi6SHaXii6aM/go-libp2p-peerstore"
@@ -53,9 +52,6 @@ func (self *Node) Connect(ctx context.Context, targetID interface{}, targetAddrs
 	} else {
 		tid = targetID.(peer.ID)
 	}
-
-	fmt.Println("target_id <--",tid.Pretty())
-
 	a := self.Host
 	a.Peerstore().AddAddrs(tid, targetAddrs, peerstore.TempAddrTTL)
 	pi := peerstore.PeerInfo{ID: tid}
