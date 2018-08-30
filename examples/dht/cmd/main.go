@@ -16,8 +16,8 @@ import (
 )
 
 var (
-	version  string         = "0.0.1"
-	logLevel []log4go.Level = []log4go.Level{log4go.ERROR, log4go.WARNING, log4go.INFO, log4go.DEBUG}
+	version  = "0.0.1"
+	logLevel = []log4go.Level{log4go.ERROR, log4go.WARNING, log4go.INFO, log4go.DEBUG}
 	app      *cli.App
 	node     *helper.Node
 	stop     chan struct{}
@@ -196,7 +196,7 @@ conn <addr>			connect to addr , "/ip4/101.251.230.214/tcp/40001/ipfs/QmZfJJRpXx4
 					fmt.Println("bye bye ^_^ ")
 					return
 				case "help", "bootstrap":
-					if _,err := funcs[cmdArg[0]]();err != nil {
+					if _, err := funcs[cmdArg[0]](); err != nil {
 						log4go.Error(err)
 					}
 				case "peers", "conn", "put", "get":
