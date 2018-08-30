@@ -50,6 +50,14 @@ func init() {
 	}
 	app.Action = func(ctx *cli.Context) error {
 		start(ctx)
+		go func() {
+			t := time.NewTicker(10 * time.Second)
+			for range t.C {
+				for i, c := range node.Host.Network().Conns() {
+					log4go.Debug("%d -> %s/ipfs/%s", i, c.RemoteMultiaddr().String(), c.RemotePeer().Pretty())
+				}
+			}
+		}()
 		<-stop
 		return nil
 	}
