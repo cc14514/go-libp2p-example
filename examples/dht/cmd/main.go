@@ -116,6 +116,7 @@ func consoleCmd(ctx *cli.Context) error {
 	funcs := map[string]func(args ... string) (interface{}, error){
 		"help": func(args ... string) (interface{}, error) {
 			s := `
+bootstrap			build p2p network	
 peers				show peers 
 put <key> <value> 		put key value to dht
 get <key>			get value by key from dht
@@ -164,12 +165,16 @@ conn <addr>			connect to addr , "/ip4/101.251.230.214/tcp/40001/ipfs/QmZfJJRpXx4
 				return nil, errors.New("fail params")
 			}
 			key := args[0]
-			buf,err := node.GetValue(context.Background(),fmt.Sprintf("/cc14514/%s", key))
+			buf, err := node.GetValue(context.Background(), fmt.Sprintf("/cc14514/%s", key))
 			if err != nil {
-				fmt.Println("get_error :",err)
-				return nil,err
+				fmt.Println("get_error :", err)
+				return nil, err
 			}
-			return string(buf),nil
+			return string(buf), nil
+		},
+		"bootstrap": func(args ... string) (interface{}, error) {
+			err := node.Bootstrap(context.Background())
+			return nil, err
 		},
 	}
 	<-time.After(time.Second)
@@ -184,13 +189,16 @@ conn <addr>			connect to addr , "/ip4/101.251.230.214/tcp/40001/ipfs/QmZfJJRpXx4
 			if cmd, err := ir.ReadString('\n'); err == nil && strings.Trim(cmd, " ") != "\n" {
 				cmd = strings.Trim(cmd, " ")
 				cmd = cmd[:len([]byte(cmd))-1]
+				// TODO 用正则表达式拆分指令和参数
 				cmdArg := strings.Split(cmd, " ")
 				switch cmdArg[0] {
 				case "exit", "quit":
 					fmt.Println("bye bye ^_^ ")
 					return
-				case "help", "?":
-					funcs["help"]()
+				case "help", "bootstrap":
+					if _,err := funcs[cmdArg[0]]();err != nil {
+						log4go.Error(err)
+					}
 				case "peers", "conn", "put", "get":
 					log4go.Debug(cmdArg[0])
 					if r, err := funcs[cmdArg[0]](cmdArg[1:len(cmdArg)]...); err != nil {
