@@ -18,6 +18,7 @@ import (
 	"path"
 	"io/ioutil"
 	"gx/ipfs/QmcZSzKEM5yDfpZbeEEZaVmaZ1zXm6JWTbrQZSB8hCVPzk/go-libp2p-peer"
+	"bytes"
 )
 
 var (
@@ -141,28 +142,29 @@ func start(ctx *cli.Context) {
 		dir := path.Join(DATA_DIR, "files")
 		os.Mkdir(dir, 0755)
 		p := path.Join(dir, fmt.Sprintf("%s_%d", rid, time.Now().Unix()))
-		log4go.Info("----> path=%s",p)
+		log4go.Info("----> path=%s", p)
 		f, _ := os.OpenFile(p, os.O_RDWR|os.O_CREATE, 0755)
 		defer f.Close()
 		log4go.Info("will read buffer")
 		buf := bufio.NewReader(s)
+		var total int
 		for {
-			log4go.Info("read buffer")
 			buff, err := buf.ReadBytes(byte(1))
-			log4go.Info("%d",len(buff))
+			log4go.Info("--> %d", len(buff))
 			if err != nil {
 				log4go.Error(err)
 				s.Reset()
 				return
-			}else if len(buff) < 1 {
+			} else if len(buff) < 1 {
 				s.Close()
-				log4go.Info("read empty")
+				log4go.Info("> total write : %d ", total )
 				return
 			}
-			log4go.Info(len(buff))
-			_buff :=buff[:len(buff)-1]
-			t,e := f.Write(_buff)
-			log4go.Info("total: %d , e: %s",t,e)
+			if bytes.Equal(buff[len(buff)-1:], []byte{1}[:]) {
+				buff = buff[:len(buff)-1]
+			}
+			t, _ := f.Write(buff)
+			total += t
 		}
 	})
 }
