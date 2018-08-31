@@ -227,7 +227,11 @@ conn <addr>			connect to addr , "/ip4/101.251.230.214/tcp/40001/ipfs/QmZfJJRpXx4
 				return nil, errors.New("fail params")
 			}
 			to, fp := args[0], args[1]
-			s, err := node.Host.NewStream(context.Background(), peer.ID(to), P_CHANNEL_FILE)
+			tid , err := peer.IDB58Decode(to)
+			if err != nil {
+				return nil, err
+			}
+			s, err := node.Host.NewStream(context.Background(), tid, P_CHANNEL_FILE)
 			if err != nil {
 				return nil, err
 			}
