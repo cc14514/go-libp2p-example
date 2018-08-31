@@ -148,26 +148,28 @@ func start(ctx *cli.Context) {
 		defer f.Close()
 		log4go.Info("will read buffer")
 		buf := bufio.NewReader(s)
-		var total int
+		var wt, rt int
 		for {
 			buff, err := buf.ReadBytes(byte(1))
-			log4go.Info("--> %d", len(buff))
+			rt += len(buff)
+			log4go.Info("%d --> %d", rt, len(buff))
 			if err != nil {
 				log4go.Error(err)
 				s.Reset()
 				return
 			} else if len(buff) < 1 {
-				log4go.Info("> total write : %d ", total)
-				s.Write(big.NewInt(int64(total)).Bytes())
+				log4go.Info("> total write : %d ", wt)
+				s.Write(big.NewInt(int64(wt)).Bytes())
 				s.Write([]byte{1})
 				s.Close()
 				return
 			}
 			if bytes.Equal(buff[len(buff)-1:], []byte{1}[:]) {
+				fmt.Println("------------------------------->")
 				buff = buff[:len(buff)-1]
 			}
 			t, _ := f.Write(buff)
-			total += t
+			wt += t
 		}
 	})
 }
@@ -269,8 +271,8 @@ conn <addr>			connect to addr , "/ip4/101.251.230.214/tcp/40001/ipfs/QmZfJJRpXx4
 			log4go.Info("wait feedback.")
 			res, err := reader.ReadBytes(byte(1))
 			if res != nil && len(res) > 0 {
-				total := new(big.Int).SetBytes(res[0:len(res)-1])
-				log4go.Info("write byte : %d , remote recv : %d", i,total.Int64())
+				total := new(big.Int).SetBytes(res[0 : len(res)-1])
+				log4go.Info("write byte : %d , remote recv : %d", i, total.Int64())
 			}
 			s.Close()
 			return nil, err
