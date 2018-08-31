@@ -57,7 +57,7 @@ func init() {
 		cli.StringFlag{
 			Name:        "datadir",
 			Usage:       "data dir on local file system.",
-			Value:       "",
+			Value:       "/tmp",
 			Destination: &DATA_DIR,
 		},
 		cli.StringFlag{
