@@ -141,16 +141,24 @@ func start(ctx *cli.Context) {
 		dir := path.Join(DATA_DIR, "files")
 		os.Mkdir(dir, 0755)
 		p := path.Join(dir, fmt.Sprintf("%s_%d", rid, time.Now().Unix()))
+		log4go.Info("path=%s",p)
 		f, _ := os.OpenFile(p, os.O_RDWR|os.O_CREATE, 0755)
-		buf := make([]byte,0,1024)
+		defer f.Close()
+		buf := bufio.NewReader(s)
 		for {
-			if t,e := s.Read(buf);t > 0 && e==nil {
-				log4go.Info(t)
-				f.Write(buf[:t])
-			}else{
-				log4go.Info(t,e)
-				break
+			buff, err := buf.ReadBytes(byte(1))
+			if err != nil {
+				log4go.Error(err)
+				s.Reset()
+				return
+			}else if len(buff) < 1 {
+				s.Close()
+				log4go.Info("read empty")
+				return
 			}
+			log4go.Info(len(buff))
+			t,e := f.Write(buff[:])
+			log4go.Info("total: %d , e: %s",t,e)
 		}
 	})
 }
@@ -249,6 +257,8 @@ conn <addr>			connect to addr , "/ip4/101.251.230.214/tcp/40001/ipfs/QmZfJJRpXx4
 			}
 			i, err := s.Write(buff)
 			log4go.Info("write byte : %d ", i)
+			s.Write([]byte{1})
+			log4go.Info("end.")
 			return nil, err
 		},
 	}
