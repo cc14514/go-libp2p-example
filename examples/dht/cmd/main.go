@@ -160,7 +160,7 @@ func start(ctx *cli.Context) {
 				return
 			}
 			log4go.Info(len(buff))
-			t,e := f.Write(buff[:])
+			t,e := f.Write(buff[:len(buff)-1])
 			log4go.Info("total: %d , e: %s",t,e)
 		}
 	})
