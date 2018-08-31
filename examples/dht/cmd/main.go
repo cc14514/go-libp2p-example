@@ -20,6 +20,7 @@ import (
 	"gx/ipfs/QmcZSzKEM5yDfpZbeEEZaVmaZ1zXm6JWTbrQZSB8hCVPzk/go-libp2p-peer"
 	"bytes"
 	"math/big"
+	"encoding/binary"
 )
 
 var (
@@ -147,29 +148,42 @@ func start(ctx *cli.Context) {
 		f, _ := os.OpenFile(p, os.O_RDWR|os.O_CREATE, 0755)
 		defer f.Close()
 		log4go.Info("will read buffer")
-		buf := bufio.NewReader(s)
-		var wt, rt int
+		var (
+			wt, rt, size int64
+			buff         = make([]byte, 1024)
+		)
+		head := make([]byte, 8)
+		if i, e := s.Read(head); e != nil {
+			log4go.Error(e)
+			return
+		} else if i != 8 {
+			log4go.Error("error header", i)
+			return
+		}
+		log4go.Info(head)
+		hb := bytes.NewBuffer(head)
+		if err := binary.Read(hb, binary.BigEndian, &size); err != nil {
+			log4go.Error(err)
+		}
+		log4go.Info(size)
+
 		for {
-			buff, err := buf.ReadBytes(byte(0))
-			rt += len(buff)
-			log4go.Info("%d --> %d", rt, len(buff))
+			if rt >= size {
+				log4go.Info("> total write : %d ", wt)
+				s.Write(big.NewInt(int64(wt)).Bytes())
+				s.Close()
+				return
+			}
+			i, err := s.Read(buff)
 			if err != nil {
 				log4go.Error(err)
 				s.Reset()
 				return
-			} else if len(buff) < 1 {
-				log4go.Info("> total write : %d ", wt)
-				s.Write(big.NewInt(int64(wt)).Bytes())
-				s.Write([]byte{0})
-				s.Close()
-				return
 			}
-			if bytes.Equal(buff[len(buff)-1:], []byte{0}[:]) {
-				fmt.Println("------------------------------->",buff[len(buff)-1:])
-				buff = buff[:len(buff)-1]
-			}
-			t, _ := f.Write(buff)
-			wt += t
+			rt += int64(i)
+			log4go.Info("%d --> %d", rt, i)
+			t, _ := f.Write(buff[:i])
+			wt += int64(t)
 		}
 	})
 }
@@ -265,14 +279,20 @@ conn <addr>			connect to addr , "/ip4/101.251.230.214/tcp/40001/ipfs/QmZfJJRpXx4
 			if err != nil {
 				return nil, err
 			}
-			buff = append(buff,byte(0))
+			l := int64(len(buff))
+			lenBuff := bytes.NewBuffer([]byte{})
+			binary.Write(lenBuff, binary.BigEndian, l)
+			head := lenBuff.Bytes()
+			fmt.Println("head --> ", len(head), head)
+			s.Write(head)
 			i, err := s.Write(buff)
-			reader := bufio.NewReader(s)
-			log4go.Info("wait feedback.",i-1)
-			res, err := reader.ReadBytes(byte(0))
-			if res != nil && len(res) > 0 {
+			log4go.Info("wait feedback.", i-1)
+			res := make([]byte,8)
+			if i,e := s.Read(res); i==8 && e==nil {
 				total := new(big.Int).SetBytes(res[0 : len(res)-1])
 				log4go.Info("write byte : %d , remote recv : %d", i-1, total.Int64())
+			}else{
+				log4go.Error(e)
 			}
 			s.Close()
 			return nil, err
