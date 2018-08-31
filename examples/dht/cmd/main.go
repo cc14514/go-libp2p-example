@@ -160,7 +160,7 @@ func start(ctx *cli.Context) {
 			log4go.Error("error header", i)
 			return
 		}
-		log4go.Info(head)
+		log4go.Info("head -> %v",head)
 		hb := bytes.NewBuffer(head)
 		if err := binary.Read(hb, binary.BigEndian, &size); err != nil {
 			log4go.Error(err)
