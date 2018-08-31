@@ -141,14 +141,16 @@ func start(ctx *cli.Context) {
 		dir := path.Join(DATA_DIR, "files")
 		os.Mkdir(dir, 0755)
 		p := path.Join(dir, fmt.Sprintf("%s_%d", rid, time.Now().Unix()))
-		log4go.Info(p)
-		//f, _ := os.OpenFile(p, os.O_RDWR|os.O_CREATE, 0755)
-		buf, err := ioutil.ReadAll(s)
-		if err != nil {
-			log4go.Error(err)
-		} else {
-			err = ioutil.WriteFile(p, buf, 0755)
-			log4go.Error(err)
+		f, _ := os.OpenFile(p, os.O_RDWR|os.O_CREATE, 0755)
+		buf := make([]byte,0,1024)
+		for {
+			if t,e := s.Read(buf);t > 0 && e==nil {
+				log4go.Info(t)
+				f.Write(buf[:t])
+			}else{
+				log4go.Info(t,e)
+				break
+			}
 		}
 	})
 }
@@ -237,6 +239,7 @@ conn <addr>			connect to addr , "/ip4/101.251.230.214/tcp/40001/ipfs/QmZfJJRpXx4
 				return nil, err
 			}
 			s, err := node.Host.NewStream(context.Background(), tid, P_CHANNEL_FILE)
+			defer s.Close()
 			if err != nil {
 				return nil, err
 			}
