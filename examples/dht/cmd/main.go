@@ -19,6 +19,7 @@ import (
 	"io/ioutil"
 	"gx/ipfs/QmcZSzKEM5yDfpZbeEEZaVmaZ1zXm6JWTbrQZSB8hCVPzk/go-libp2p-peer"
 	"bytes"
+	"math/big"
 )
 
 var (
@@ -156,8 +157,10 @@ func start(ctx *cli.Context) {
 				s.Reset()
 				return
 			} else if len(buff) < 1 {
+				log4go.Info("> total write : %d ", total)
+				s.Write(big.NewInt(int64(total)).Bytes())
+				s.Write([]byte{1})
 				s.Close()
-				log4go.Info("> total write : %d ", total )
 				return
 			}
 			if bytes.Equal(buff[len(buff)-1:], []byte{1}[:]) {
@@ -253,7 +256,6 @@ conn <addr>			connect to addr , "/ip4/101.251.230.214/tcp/40001/ipfs/QmZfJJRpXx4
 				return nil, err
 			}
 			s, err := node.Host.NewStream(context.Background(), tid, P_CHANNEL_FILE)
-			defer s.Close()
 			if err != nil {
 				return nil, err
 			}
@@ -262,9 +264,15 @@ conn <addr>			connect to addr , "/ip4/101.251.230.214/tcp/40001/ipfs/QmZfJJRpXx4
 				return nil, err
 			}
 			i, err := s.Write(buff)
-			log4go.Info("write byte : %d ", i)
 			s.Write([]byte{1})
-			log4go.Info("end.")
+			reader := bufio.NewReader(s)
+			log4go.Info("wait feedback.")
+			res, err := reader.ReadBytes(byte(1))
+			if res != nil && len(res) > 0 {
+				total := new(big.Int).SetBytes(res[0:len(res)-1])
+				log4go.Info("write byte : %d , remote recv : %d", i,total.Int64())
+			}
+			s.Close()
 			return nil, err
 		},
 	}
