@@ -165,7 +165,7 @@ func start(ctx *cli.Context) {
 				return
 			}
 			if bytes.Equal(buff[len(buff)-1:], []byte{1}[:]) {
-				fmt.Println("------------------------------->")
+				fmt.Println("------------------------------->",buff[len(buff)-3:])
 				buff = buff[:len(buff)-1]
 			}
 			t, _ := f.Write(buff)
