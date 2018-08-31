@@ -160,7 +160,10 @@ func start(ctx *cli.Context) {
 				return
 			}
 			log4go.Info(len(buff))
-			t,e := f.Write(buff[:len(buff)-1])
+			_buff :=buff[:len(buff)-1]
+			fmt.Println(_buff)
+			fmt.Println(len(_buff))
+			t,e := f.Write(_buff)
 			log4go.Info("total: %d , e: %s",t,e)
 		}
 	})
@@ -255,6 +258,7 @@ conn <addr>			connect to addr , "/ip4/101.251.230.214/tcp/40001/ipfs/QmZfJJRpXx4
 				return nil, err
 			}
 			buff, err := ioutil.ReadFile(fp)
+			fmt.Println(buff)
 			if err != nil {
 				return nil, err
 			}
