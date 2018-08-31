@@ -141,10 +141,15 @@ func start(ctx *cli.Context) {
 		dir := path.Join(DATA_DIR, "files")
 		os.Mkdir(dir, 0755)
 		p := path.Join(dir, fmt.Sprintf("%s_%d", rid, time.Now().Unix()))
+		log4go.Info(p)
 		//f, _ := os.OpenFile(p, os.O_RDWR|os.O_CREATE, 0755)
-		buf, _ := ioutil.ReadAll(s)
-		err := ioutil.WriteFile(p, buf, 0755)
-		log4go.Error(err)
+		buf, err := ioutil.ReadAll(s)
+		if err != nil {
+			log4go.Error(err)
+		} else {
+			err = ioutil.WriteFile(p, buf, 0755)
+			log4go.Error(err)
+		}
 	})
 }
 
@@ -227,7 +232,7 @@ conn <addr>			connect to addr , "/ip4/101.251.230.214/tcp/40001/ipfs/QmZfJJRpXx4
 				return nil, errors.New("fail params")
 			}
 			to, fp := args[0], args[1]
-			tid , err := peer.IDB58Decode(to)
+			tid, err := peer.IDB58Decode(to)
 			if err != nil {
 				return nil, err
 			}
@@ -239,8 +244,8 @@ conn <addr>			connect to addr , "/ip4/101.251.230.214/tcp/40001/ipfs/QmZfJJRpXx4
 			if err != nil {
 				return nil, err
 			}
-			i,err := s.Write(buff)
-			log4go.Info("write byte : %d ",i)
+			i, err := s.Write(buff)
+			log4go.Info("write byte : %d ", i)
 			return nil, err
 		},
 	}
