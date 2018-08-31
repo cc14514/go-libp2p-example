@@ -150,7 +150,7 @@ func start(ctx *cli.Context) {
 		log4go.Info("will read buffer")
 		var (
 			wt, rt, size int64
-			buff         = make([]byte, 1024)
+			buff         = make([]byte, 4096)
 		)
 		head := make([]byte, 8)
 		if i, e := s.Read(head); e != nil {
@@ -181,7 +181,7 @@ func start(ctx *cli.Context) {
 				return
 			}
 			rt += int64(i)
-			log4go.Info("%d --> %d", rt, i)
+			//log4go.Info("%d --> %d", rt, i)
 			t, _ := f.Write(buff[:i])
 			wt += int64(t)
 		}
@@ -289,7 +289,7 @@ conn <addr>			connect to addr , "/ip4/101.251.230.214/tcp/40001/ipfs/QmZfJJRpXx4
 			log4go.Info("wait feedback.", i-1)
 			res := make([]byte,8)
 			if i,e := s.Read(res); i==8 && e==nil {
-				total := new(big.Int).SetBytes(res[0 : len(res)-1])
+				total := new(big.Int).SetBytes(res)
 				log4go.Info("write byte : %d , remote recv : %d", i-1, total.Int64())
 			}else{
 				log4go.Error(e)
