@@ -32,7 +32,7 @@ var (
 const (
 	DEF_BOOT_NODE = "/ip4/101.251.230.214/tcp/40001/ipfs/QmZfJJRpXx4kLJfNq6sqKVWtGsaoaL54zG3aT2zEnA6xn7"
 	// protocols
-	P_CHANNEL_FILE = protocol.ID("/channel/file_0.0.1")
+	P_CHANNEL_FILE = protocol.ID("/channel/file")
 )
 
 func init() {
@@ -141,12 +141,15 @@ func start(ctx *cli.Context) {
 		dir := path.Join(DATA_DIR, "files")
 		os.Mkdir(dir, 0755)
 		p := path.Join(dir, fmt.Sprintf("%s_%d", rid, time.Now().Unix()))
-		log4go.Info("path=%s",p)
+		log4go.Info("----> path=%s",p)
 		f, _ := os.OpenFile(p, os.O_RDWR|os.O_CREATE, 0755)
 		defer f.Close()
+		log4go.Info("will read buffer")
 		buf := bufio.NewReader(s)
 		for {
+			log4go.Info("read buffer")
 			buff, err := buf.ReadBytes(byte(1))
+			log4go.Info("%d",len(buff))
 			if err != nil {
 				log4go.Error(err)
 				s.Reset()
