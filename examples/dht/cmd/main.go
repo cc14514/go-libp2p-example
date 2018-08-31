@@ -13,19 +13,26 @@ import (
 	"context"
 	"time"
 	"gx/ipfs/QmVmDhyTTUcQXFD1rRQ64fGLMSAoaQvNH3hwuaCFAPq2hy/errors"
+	"gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
+	inet "gx/ipfs/QmVwU7Mgwg6qaPn9XXz93ANfq1PTxcduGRzfe41Sygg4mR/go-libp2p-net"
+	"path"
+	"io/ioutil"
+	"gx/ipfs/QmcZSzKEM5yDfpZbeEEZaVmaZ1zXm6JWTbrQZSB8hCVPzk/go-libp2p-peer"
 )
 
 var (
-	version  = "0.0.1"
-	logLevel = []log4go.Level{log4go.ERROR, log4go.WARNING, log4go.INFO, log4go.DEBUG}
-	app      *cli.App
-	node     *helper.Node
-	stop     chan struct{}
+	version             = "0.0.1"
+	logLevel            = []log4go.Level{log4go.ERROR, log4go.WARNING, log4go.INFO, log4go.DEBUG}
+	app                 *cli.App
+	node                *helper.Node
+	stop                chan struct{}
+	DATA_DIR, BOOT_NODE string
 )
 
 const (
-	BOOT_NODE = "/ip4/101.251.230.214/tcp/40001/ipfs/QmZfJJRpXx4kLJfNq6sqKVWtGsaoaL54zG3aT2zEnA6xn7"
-	DATA_DIR  = ""
+	DEF_BOOT_NODE = "/ip4/101.251.230.214/tcp/40001/ipfs/QmZfJJRpXx4kLJfNq6sqKVWtGsaoaL54zG3aT2zEnA6xn7"
+	// protocols
+	P_CHANNEL_FILE = protocol.ID("/channel/file_0.0.1")
 )
 
 func init() {
@@ -46,6 +53,18 @@ func init() {
 			Name:  "loglevel",
 			Usage: "0:error , 1:warning , 2:info , 3:debug",
 			Value: 2,
+		},
+		cli.StringFlag{
+			Name:        "datadir",
+			Usage:       "data dir on local file system.",
+			Value:       "",
+			Destination: &DATA_DIR,
+		},
+		cli.StringFlag{
+			Name:        "bootnode",
+			Usage:       "seed node for build p2p network.",
+			Value:       DEF_BOOT_NODE,
+			Destination: &BOOT_NODE,
 		},
 	}
 	app.Action = func(ctx *cli.Context) error {
@@ -117,6 +136,16 @@ func start(ctx *cli.Context) {
 		log4go.Info("connect_success")
 	}
 
+	node.Host.SetStreamHandler(P_CHANNEL_FILE, func(s inet.Stream) {
+		rid := s.Conn().RemotePeer().Pretty()
+		dir := path.Join(DATA_DIR, "files")
+		os.Mkdir(dir, 0755)
+		p := path.Join(dir, fmt.Sprintf("%s_%d", rid, time.Now().Unix()))
+		//f, _ := os.OpenFile(p, os.O_RDWR|os.O_CREATE, 0755)
+		buf, _ := ioutil.ReadAll(s)
+		err := ioutil.WriteFile(p, buf, 0755)
+		log4go.Error(err)
+	})
 }
 
 func consoleCmd(ctx *cli.Context) error {
@@ -126,6 +155,7 @@ func consoleCmd(ctx *cli.Context) error {
 			s := `
 bootstrap			build p2p network	
 peers				show peers 
+findpeer <id>		findpeer by peer.ID
 put <key> <value> 		put key value to dht
 get <key>			get value by key from dht
 conn <addr>			connect to addr , "/ip4/101.251.230.214/tcp/40001/ipfs/QmZfJJRpXx4kLJfNq6sqKVWtGsaoaL54zG3aT2zEnA6xn7"	
@@ -184,6 +214,31 @@ conn <addr>			connect to addr , "/ip4/101.251.230.214/tcp/40001/ipfs/QmZfJJRpXx4
 			err := node.Bootstrap(context.Background())
 			return nil, err
 		},
+		"findpeer": func(args ... string) (interface{}, error) {
+			if len(args) != 1 {
+				return nil, errors.New("fail params")
+			}
+			pi, err := node.FindPeer(context.Background(), args[0])
+			fmt.Println("success", pi.ID.Pretty(), pi.Addrs)
+			return nil, err
+		},
+		"scp": func(args ... string) (interface{}, error) {
+			if len(args) != 2 {
+				return nil, errors.New("fail params")
+			}
+			to, fp := args[0], args[1]
+			s, err := node.Host.NewStream(context.Background(), peer.ID(to), P_CHANNEL_FILE)
+			if err != nil {
+				return nil, err
+			}
+			buff, err := ioutil.ReadFile(fp)
+			if err != nil {
+				return nil, err
+			}
+			i,err := s.Write(buff)
+			log4go.Info("write byte : %d ",i)
+			return nil, err
+		},
 	}
 	<-time.After(time.Second)
 	go func() {
@@ -207,7 +262,7 @@ conn <addr>			connect to addr , "/ip4/101.251.230.214/tcp/40001/ipfs/QmZfJJRpXx4
 					if _, err := funcs[cmdArg[0]](); err != nil {
 						log4go.Error(err)
 					}
-				case "peers", "conn", "put", "get":
+				case "peers", "conn", "put", "get", "findpeer", "scp":
 					log4go.Debug(cmdArg[0])
 					if r, err := funcs[cmdArg[0]](cmdArg[1:len(cmdArg)]...); err != nil {
 						log4go.Error(err)

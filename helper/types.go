@@ -11,6 +11,8 @@ import (
 	"gx/ipfs/QmcZSzKEM5yDfpZbeEEZaVmaZ1zXm6JWTbrQZSB8hCVPzk/go-libp2p-peer"
 	ma "gx/ipfs/QmYmsdtJ3HsodkePE3eU3TsCaP2YvPZJ4LoXnNkDE5Tpt7/go-multiaddr"
 	"reflect"
+	pstore "gx/ipfs/QmYLXCWN2myozZpx8Wx4UjrRuQuhY3YtWoMi6SHaXii6aM/go-libp2p-peerstore"
+	"github.com/alecthomas/log4go"
 )
 
 type blankValidator struct{}
@@ -67,4 +69,22 @@ func (self *Node) PutValue(ctx context.Context, key string, value []byte) error 
 
 func (self *Node) GetValue(ctx context.Context, key string) ([]byte, error) {
 	return self.Routing.GetValue(ctx, key)
+}
+
+func (self *Node) FindPeer(ctx context.Context,targetID interface{}) ( pstore.PeerInfo, error) {
+	var (
+		tid peer.ID
+		err error
+	)
+	if "string" == reflect.TypeOf(targetID).Name() {
+		stid := targetID.(string)
+		tid , err = peer.IDB58Decode(stid)
+		if err != nil {
+			log4go.Error(err)
+			return pstore.PeerInfo{},err
+		}
+	} else {
+		tid = targetID.(peer.ID)
+	}
+	return self.Routing.FindPeer(ctx, tid)
 }
