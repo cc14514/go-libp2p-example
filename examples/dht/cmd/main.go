@@ -23,11 +23,11 @@ import (
 	"encoding/binary"
 )
 
-
 const (
 	// protocols
 	P_CHANNEL_FILE = protocol.ID("/channel/file")
 )
+
 var (
 	version             = "0.0.1"
 	logLevel            = []log4go.Level{log4go.ERROR, log4go.WARNING, log4go.INFO, log4go.DEBUG}
@@ -40,11 +40,11 @@ var (
 			s := `
 bootstrap			build p2p network	
 peers				show peers 
-findpeer <id>		findpeer by peer.ID
+findpeer <id>			findpeer by peer.ID
 put <key> <value> 		put key value to dht
 get <key>			get value by key from dht
 conn <addr>			connect to addr , "/ip4/[ip]/tcp/[port]/ipfs/[pid]"	
-scp <pid> <filepath>	copy <filepath> to pidNode's datadir/files for test transfer
+scp <pid> <filepath>		copy <filepath> to pidNode's datadir/files for test transfer
 `
 			fmt.Println(s)
 			return nil, nil
@@ -146,8 +146,6 @@ scp <pid> <filepath>	copy <filepath> to pidNode's datadir/files for test transfe
 	}
 )
 
-
-
 func init() {
 	stop = make(chan struct{})
 	app = cli.NewApp()
@@ -157,6 +155,10 @@ func init() {
 	app.Author = "liangc"
 	app.Email = "cc14514@icloud.com"
 	app.Flags = []cli.Flag{
+		cli.BoolFlag{
+			Name:  "seed",
+			Usage: "start as a bootnode rule",
+		},
 		cli.IntFlag{
 			Name:  "port,p",
 			Usage: "listen port",
@@ -228,29 +230,32 @@ func main() {
 }
 
 func start(ctx *cli.Context) {
-	if BOOT_NODE == "" {
+	isseed := ctx.GlobalBool("seed")
+	if !isseed && BOOT_NODE == "" {
 		log4go.Error(errors.New("bootnode can not empty."))
-		<- time.After(time.Second)
+		<-time.After(time.Second)
 		os.Exit(0)
 	}
 	prv, err := helper.LoadKey(DATA_DIR)
 	if err != nil {
 		prv, _ = helper.GenKey(DATA_DIR)
 	}
-	log4go.Info("TEST_NODE -> %s", BOOT_NODE)
 	port := ctx.GlobalInt("port")
 	node = helper.NewNode(prv, port)
+	log4go.Info("myid : %s", node.Host.ID().Pretty())
 
-	addr, _ := iaddr.ParseString(BOOT_NODE)
-	id := addr.ID()
-	if id.Pretty() != node.Host.ID().Pretty() {
-		//TODO
-		err = node.Connect(context.Background(), string(id), []ma.Multiaddr{addr.Transport()})
-		log4go.Info("myid : %s", node.Host.ID().Pretty())
-		if err != nil {
-			panic(err)
+	if !isseed {
+		log4go.Info("BOOT_NODE -> %s", BOOT_NODE)
+		addr, _ := iaddr.ParseString(BOOT_NODE)
+		id := addr.ID()
+		if id.Pretty() != node.Host.ID().Pretty() {
+			//TODO
+			err = node.Connect(context.Background(), string(id), []ma.Multiaddr{addr.Transport()})
+			if err != nil {
+				panic(err)
+			}
+			log4go.Info("connect_success")
 		}
-		log4go.Info("connect_success")
 	}
 
 	node.Host.SetStreamHandler(P_CHANNEL_FILE, func(s inet.Stream) {
