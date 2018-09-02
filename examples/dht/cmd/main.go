@@ -23,6 +23,11 @@ import (
 	"encoding/binary"
 )
 
+
+const (
+	// protocols
+	P_CHANNEL_FILE = protocol.ID("/channel/file")
+)
 var (
 	version             = "0.0.1"
 	logLevel            = []log4go.Level{log4go.ERROR, log4go.WARNING, log4go.INFO, log4go.DEBUG}
@@ -30,167 +35,7 @@ var (
 	node                *helper.Node
 	stop                chan struct{}
 	DATA_DIR, BOOT_NODE string
-)
-
-const (
-	DEF_BOOT_NODE = "/ip4/101.251.230.214/tcp/40001/ipfs/QmZfJJRpXx4kLJfNq6sqKVWtGsaoaL54zG3aT2zEnA6xn7"
-	// protocols
-	P_CHANNEL_FILE = protocol.ID("/channel/file")
-)
-
-func init() {
-	stop = make(chan struct{})
-	app = cli.NewApp()
-	app.Name = os.Args[0]
-	app.Usage = "go-libp2p example"
-	app.Version = version
-	app.Author = "liangc"
-	app.Email = "cc14514@icloud.com"
-	app.Flags = []cli.Flag{
-		cli.IntFlag{
-			Name:  "port,p",
-			Usage: "listen port",
-			Value: 40001,
-		},
-		cli.IntFlag{
-			Name:  "loglevel",
-			Usage: "0:error , 1:warning , 2:info , 3:debug",
-			Value: 2,
-		},
-		cli.StringFlag{
-			Name:        "datadir",
-			Usage:       "data dir on local file system.",
-			Value:       "/tmp",
-			Destination: &DATA_DIR,
-		},
-		cli.StringFlag{
-			Name:        "bootnode",
-			Usage:       "seed node for build p2p network.",
-			Value:       DEF_BOOT_NODE,
-			Destination: &BOOT_NODE,
-		},
-	}
-	app.Action = func(ctx *cli.Context) error {
-		start(ctx)
-		go func() {
-			t := time.NewTicker(10 * time.Second)
-			for range t.C {
-				for i, c := range node.Host.Network().Conns() {
-					log4go.Debug("%d -> %s/ipfs/%s", i, c.RemoteMultiaddr().String(), c.RemotePeer().Pretty())
-				}
-			}
-		}()
-		<-stop
-		return nil
-	}
-	app.Before = func(ctx *cli.Context) error {
-		idx := ctx.GlobalInt("loglevel")
-		level := logLevel[idx]
-		log4go.AddFilter("stdout", log4go.Level(level), log4go.NewConsoleLogWriter())
-		return nil
-	}
-	app.After = func(ctx *cli.Context) error {
-		log4go.Close()
-		return nil
-	}
-	app.Commands = []cli.Command{
-		{
-			Name: "version",
-			Action: func(ctx *cli.Context) error {
-				fmt.Println("version\t:", version)
-				fmt.Println("auth\t:", app.Author)
-				fmt.Println("email\t:", app.Email)
-				fmt.Println("source\t: https://github.com/cc14514")
-				return nil
-			},
-		},
-		{
-			Name:   "console",
-			Usage:  "一个简单的交互控制台，用来调试",
-			Action: consoleCmd,
-		},
-	}
-}
-
-func main() {
-	if err := app.Run(os.Args); err != nil {
-		fmt.Println(err)
-	}
-}
-
-func start(ctx *cli.Context) {
-	prv, err := helper.LoadKey(DATA_DIR)
-	if err != nil {
-		prv, _ = helper.GenKey(DATA_DIR)
-	}
-	log4go.Info("TEST_NODE -> %s", BOOT_NODE)
-	port := ctx.GlobalInt("port")
-	node = helper.NewNode(prv, port)
-
-	addr, _ := iaddr.ParseString(BOOT_NODE)
-	id := addr.ID()
-	if id.Pretty() != node.Host.ID().Pretty() {
-		//TODO
-		err = node.Connect(context.Background(), string(id), []ma.Multiaddr{addr.Transport()})
-		log4go.Info("myid : %s", node.Host.ID().Pretty())
-		if err != nil {
-			panic(err)
-		}
-		log4go.Info("connect_success")
-	}
-
-	node.Host.SetStreamHandler(P_CHANNEL_FILE, func(s inet.Stream) {
-		rid := s.Conn().RemotePeer().Pretty()
-		dir := path.Join(DATA_DIR, "files")
-		os.Mkdir(dir, 0755)
-		p := path.Join(dir, fmt.Sprintf("%s_%d", rid, time.Now().Unix()))
-		log4go.Info("----> path=%s", p)
-		f, _ := os.OpenFile(p, os.O_RDWR|os.O_CREATE, 0755)
-		defer f.Close()
-		log4go.Info("will read buffer")
-		var (
-			wt, rt, size int64
-			buff         = make([]byte, 4096)
-		)
-		head := make([]byte, 8)
-		if i, e := s.Read(head); e != nil {
-			log4go.Error(e)
-			return
-		} else if i != 8 {
-			log4go.Error("error header", i)
-			return
-		}
-		log4go.Info("head -> %v",head)
-		hb := bytes.NewBuffer(head)
-		if err := binary.Read(hb, binary.BigEndian, &size); err != nil {
-			log4go.Error(err)
-		}
-		log4go.Info(size)
-
-		for {
-			if rt >= size {
-				log4go.Info("> total write : %d ", wt)
-				s.Write(big.NewInt(int64(wt)).Bytes())
-				s.Close()
-				return
-			}
-			i, err := s.Read(buff)
-			if err != nil {
-				log4go.Error(err)
-				s.Reset()
-				return
-			}
-			rt += int64(i)
-			log4go.Info("%d --> %d", rt, i)
-			t, _ := f.Write(buff[:i])
-			wt += int64(t)
-		}
-	})
-}
-
-func consoleCmd(ctx *cli.Context) error {
-	start(ctx)
-	funcs := map[string]func(args ... string) (interface{}, error){
+	funcs               = map[string]func(args ... string) (interface{}, error){
 		"help": func(args ... string) (interface{}, error) {
 			s := `
 bootstrap			build p2p network	
@@ -198,7 +43,8 @@ peers				show peers
 findpeer <id>		findpeer by peer.ID
 put <key> <value> 		put key value to dht
 get <key>			get value by key from dht
-conn <addr>			connect to addr , "/ip4/101.251.230.214/tcp/40001/ipfs/QmZfJJRpXx4kLJfNq6sqKVWtGsaoaL54zG3aT2zEnA6xn7"	
+conn <addr>			connect to addr , "/ip4/[ip]/tcp/[port]/ipfs/[pid]"	
+scp <pid> <filepath>	copy <filepath> to pidNode's datadir/files for test transfer
 `
 			fmt.Println(s)
 			return nil, nil
@@ -298,6 +144,161 @@ conn <addr>			connect to addr , "/ip4/101.251.230.214/tcp/40001/ipfs/QmZfJJRpXx4
 			return nil, err
 		},
 	}
+)
+
+
+
+func init() {
+	stop = make(chan struct{})
+	app = cli.NewApp()
+	app.Name = os.Args[0]
+	app.Usage = "go-libp2p example"
+	app.Version = version
+	app.Author = "liangc"
+	app.Email = "cc14514@icloud.com"
+	app.Flags = []cli.Flag{
+		cli.IntFlag{
+			Name:  "port,p",
+			Usage: "listen port",
+			Value: 40001,
+		},
+		cli.IntFlag{
+			Name:  "loglevel",
+			Usage: "0:error , 1:warning , 2:info , 3:debug",
+			Value: 2,
+		},
+		cli.StringFlag{
+			Name:        "datadir",
+			Usage:       "data dir on local file system.",
+			Value:       "/tmp",
+			Destination: &DATA_DIR,
+		},
+		cli.StringFlag{
+			Name:        "bootnode",
+			Usage:       "seed node for build p2p network.",
+			Destination: &BOOT_NODE,
+		},
+	}
+	app.Action = func(ctx *cli.Context) error {
+		start(ctx)
+		go func() {
+			t := time.NewTicker(10 * time.Second)
+			for range t.C {
+				for i, c := range node.Host.Network().Conns() {
+					log4go.Debug("%d -> %s/ipfs/%s", i, c.RemoteMultiaddr().String(), c.RemotePeer().Pretty())
+				}
+			}
+		}()
+		<-stop
+		return nil
+	}
+	app.Before = func(ctx *cli.Context) error {
+		idx := ctx.GlobalInt("loglevel")
+		level := logLevel[idx]
+		log4go.AddFilter("stdout", log4go.Level(level), log4go.NewConsoleLogWriter())
+		return nil
+	}
+	app.After = func(ctx *cli.Context) error {
+		log4go.Close()
+		return nil
+	}
+	app.Commands = []cli.Command{
+		{
+			Name: "version",
+			Action: func(ctx *cli.Context) error {
+				fmt.Println("version\t:", version)
+				fmt.Println("auth\t:", app.Author)
+				fmt.Println("email\t:", app.Email)
+				fmt.Println("source\t: https://github.com/cc14514")
+				return nil
+			},
+		},
+		{
+			Name:   "console",
+			Usage:  "一个简单的交互控制台，用来调试",
+			Action: consoleCmd,
+		},
+	}
+}
+
+func main() {
+	if err := app.Run(os.Args); err != nil {
+		fmt.Println(err)
+	}
+}
+
+func start(ctx *cli.Context) {
+	prv, err := helper.LoadKey(DATA_DIR)
+	if err != nil {
+		prv, _ = helper.GenKey(DATA_DIR)
+	}
+	log4go.Info("TEST_NODE -> %s", BOOT_NODE)
+	port := ctx.GlobalInt("port")
+	node = helper.NewNode(prv, port)
+
+	addr, _ := iaddr.ParseString(BOOT_NODE)
+	id := addr.ID()
+	if id.Pretty() != node.Host.ID().Pretty() {
+		//TODO
+		err = node.Connect(context.Background(), string(id), []ma.Multiaddr{addr.Transport()})
+		log4go.Info("myid : %s", node.Host.ID().Pretty())
+		if err != nil {
+			panic(err)
+		}
+		log4go.Info("connect_success")
+	}
+
+	node.Host.SetStreamHandler(P_CHANNEL_FILE, func(s inet.Stream) {
+		rid := s.Conn().RemotePeer().Pretty()
+		dir := path.Join(DATA_DIR, "files")
+		os.Mkdir(dir, 0755)
+		p := path.Join(dir, fmt.Sprintf("%s_%d", rid, time.Now().Unix()))
+		log4go.Info("----> path=%s", p)
+		f, _ := os.OpenFile(p, os.O_RDWR|os.O_CREATE, 0755)
+		defer f.Close()
+		log4go.Info("will read buffer")
+		var (
+			wt, rt, size int64
+			buff         = make([]byte, 4096)
+		)
+		head := make([]byte, 8)
+		if i, e := s.Read(head); e != nil {
+			log4go.Error(e)
+			return
+		} else if i != 8 {
+			log4go.Error("error header", i)
+			return
+		}
+		log4go.Info("head -> %v", head)
+		hb := bytes.NewBuffer(head)
+		if err := binary.Read(hb, binary.BigEndian, &size); err != nil {
+			log4go.Error(err)
+		}
+		log4go.Info(size)
+
+		for {
+			if rt >= size {
+				log4go.Info("> total write : %d ", wt)
+				s.Write(big.NewInt(int64(wt)).Bytes())
+				s.Close()
+				return
+			}
+			i, err := s.Read(buff)
+			if err != nil {
+				log4go.Error(err)
+				s.Reset()
+				return
+			}
+			rt += int64(i)
+			log4go.Info("%d --> %d", rt, i)
+			t, _ := f.Write(buff[:i])
+			wt += int64(t)
+		}
+	})
+}
+
+func consoleCmd(ctx *cli.Context) error {
+	start(ctx)
 	<-time.After(time.Second)
 	go func() {
 		defer close(stop)
@@ -320,15 +321,13 @@ conn <addr>			connect to addr , "/ip4/101.251.230.214/tcp/40001/ipfs/QmZfJJRpXx4
 					if _, err := funcs[cmdArg[0]](); err != nil {
 						log4go.Error(err)
 					}
-				case "peers", "conn", "put", "get", "findpeer", "scp":
+				default:
 					log4go.Debug(cmdArg[0])
-					if r, err := funcs[cmdArg[0]](cmdArg[1:len(cmdArg)]...); err != nil {
+					if r, err := funcs[cmdArg[0]](cmdArg[1:]...); err != nil {
 						log4go.Error(err)
 					} else if r != nil {
 						fmt.Println(r)
 					}
-				default:
-
 				}
 			}
 		}
