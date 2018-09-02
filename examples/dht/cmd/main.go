@@ -186,6 +186,7 @@ func init() {
 		go func() {
 			t := time.NewTicker(10 * time.Second)
 			for range t.C {
+				log4go.Info("total peer : %d",len(node.Host.Network().Conns()))
 				for i, c := range node.Host.Network().Conns() {
 					log4go.Debug("%d -> %s/ipfs/%s", i, c.RemoteMultiaddr().String(), c.RemotePeer().Pretty())
 				}
