@@ -228,6 +228,11 @@ func main() {
 }
 
 func start(ctx *cli.Context) {
+	if BOOT_NODE == "" {
+		log4go.Error(errors.New("bootnode can not empty."))
+		<- time.After(time.Second)
+		os.Exit(0)
+	}
 	prv, err := helper.LoadKey(DATA_DIR)
 	if err != nil {
 		prv, _ = helper.GenKey(DATA_DIR)
