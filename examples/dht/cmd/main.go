@@ -132,7 +132,7 @@ scp <pid> <filepath>		copy <filepath> to pidNode's datadir/files for test transf
 			fmt.Println("head --> ", len(head), head)
 			s.Write(head)
 			i, err := s.Write(buff)
-			log4go.Info("wait feedback.", i)
+			log4go.Info("wait feedback. %d", i)
 			res := make([]byte, 8)
 			if i, e := s.Read(res); e == nil {
 				total := new(big.Int).SetBytes(res[0:i])
