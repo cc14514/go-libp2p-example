@@ -16,7 +16,7 @@ import (
 	"gx/ipfs/QmWzjXAyBTygw6CeCTUnhJzhFucfxY5FJivSoiGuiSbPjS/go-smux-multistream"
 )
 
-func GenSwarmByKey(key ic.PrivKey) *swarm.Swarm {
+func GenSwarmByKey(key ic.PrivKey) (*swarm.Swarm, *tptu.Upgrader) {
 	ctx := context.Background()
 	priv, pub := key, key.GetPublic()
 	pid, err := peer.IDFromPublicKey(pub)
@@ -29,6 +29,7 @@ func GenSwarmByKey(key ic.PrivKey) *swarm.Swarm {
 	s := swarm.NewSwarm(ctx, pid, ps, nil)
 
 	//NewTCPTransport
+	u := GenUpgrader(s)
 	tcpTransport := tcp.NewTCPTransport(GenUpgrader(s))
 
 	if err := s.AddTransport(tcpTransport); err != nil {
@@ -39,9 +40,14 @@ func GenSwarmByKey(key ic.PrivKey) *swarm.Swarm {
 	//s.Listen(maddr)
 	//s.AddListenAddr(maddr)
 	s.Peerstore().AddAddrs(pid, s.ListenAddresses(), peerstore.PermanentAddrTTL)
+	return s, u
+}
+func GenSwarm() (*swarm.Swarm) {
+	s,_ := GenSwarm2()
 	return s
 }
-func GenSwarm() *swarm.Swarm {
+
+func GenSwarm2() (*swarm.Swarm, *tptu.Upgrader) {
 	priv, _, err := ic.GenerateKeyPairWithReader(ic.RSA, 2048, rand.Reader)
 	if err != nil {
 		panic(err) // oh no!

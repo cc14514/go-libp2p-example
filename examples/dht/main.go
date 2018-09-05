@@ -22,11 +22,11 @@ type Node struct {
 func NewLocalNode(port int) *Node {
 	h, _ := basichost.NewHost(context.Background(), helper.GenSwarm(), &basichost.HostOpts{})
 	maddr, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", port))
-	if err!=nil {
+	if err != nil {
 		panic(err)
 	}
 	h.Network().Listen(maddr)
-	h.Peerstore().AddAddrs(h.ID(),[]multiaddr.Multiaddr{maddr},peerstore.ProviderAddrTTL)
+	h.Peerstore().AddAddrs(h.ID(), []multiaddr.Multiaddr{maddr}, peerstore.ProviderAddrTTL)
 	d, _ := dht.New(context.Background(), h)
 	return &Node{h, d}
 }
