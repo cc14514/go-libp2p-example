@@ -13,6 +13,7 @@ import (
 	"reflect"
 	pstore "gx/ipfs/QmYLXCWN2myozZpx8Wx4UjrRuQuhY3YtWoMi6SHaXii6aM/go-libp2p-peerstore"
 	"github.com/alecthomas/log4go"
+	"fmt"
 )
 
 type blankValidator struct{}
@@ -25,14 +26,18 @@ type Node struct {
 	Routing *dht.IpfsDHT
 }
 
-func NewLocalNode(port int) *Node {
-	h, _ := basichost.NewHost(context.Background(), GenSwarm(port), &basichost.HostOpts{})
+func NewLocalNode() *Node {
+	h, _ := basichost.NewHost(context.Background(), GenSwarm(), &basichost.HostOpts{})
 	d, _ := dht.New(context.Background(), h, opts.NamespacedValidator("cc14514", blankValidator{}), )
 	return &Node{h, d}
 }
 
 func NewNode(key ic.PrivKey, port int) *Node {
-	h, _ := basichost.NewHost(context.Background(), GenSwarmByKey(key, port), &basichost.HostOpts{})
+	h, _ := basichost.NewHost(context.Background(), GenSwarmByKey(key), &basichost.HostOpts{})
+	maddr1, _ := ma.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", port))
+	maddr2, _ := ma.NewMultiaddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", port))
+	h.Network().Listen(maddr1, maddr2)
+
 	d, _ := dht.New(context.Background(), h, opts.NamespacedValidator("cc14514", blankValidator{}), )
 	return &Node{h, d}
 }
@@ -50,7 +55,7 @@ func (self *Node) Connect(ctx context.Context, targetID interface{}, targetAddrs
 	var tid peer.ID
 	if "string" == reflect.TypeOf(targetID).Name() {
 		stid := targetID.(string)
-		tid,_ = peer.IDFromString(stid)
+		tid, _ = peer.IDFromString(stid)
 	} else {
 		tid = targetID.(peer.ID)
 	}
@@ -71,17 +76,17 @@ func (self *Node) GetValue(ctx context.Context, key string) ([]byte, error) {
 	return self.Routing.GetValue(ctx, key)
 }
 
-func (self *Node) FindPeer(ctx context.Context,targetID interface{}) ( pstore.PeerInfo, error) {
+func (self *Node) FindPeer(ctx context.Context, targetID interface{}) (pstore.PeerInfo, error) {
 	var (
 		tid peer.ID
 		err error
 	)
 	if "string" == reflect.TypeOf(targetID).Name() {
 		stid := targetID.(string)
-		tid , err = peer.IDB58Decode(stid)
+		tid, err = peer.IDB58Decode(stid)
 		if err != nil {
 			log4go.Error(err)
-			return pstore.PeerInfo{},err
+			return pstore.PeerInfo{}, err
 		}
 	} else {
 		tid = targetID.(peer.ID)

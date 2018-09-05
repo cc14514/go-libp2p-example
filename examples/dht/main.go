@@ -10,7 +10,7 @@ import (
 	"gx/ipfs/QmZAsayEQakfFbHyakgHRKHwBTWrwuSBTfaMyxJZUG97VC/go-libp2p-kad-dht"
 	"gx/ipfs/QmcZSzKEM5yDfpZbeEEZaVmaZ1zXm6JWTbrQZSB8hCVPzk/go-libp2p-peer"
 	"time"
-
+	"gx/ipfs/QmYmsdtJ3HsodkePE3eU3TsCaP2YvPZJ4LoXnNkDE5Tpt7/go-multiaddr"
 	"github.com/cc14514/go-libp2p-example/helper"
 )
 
@@ -20,7 +20,13 @@ type Node struct {
 }
 
 func NewLocalNode(port int) *Node {
-	h, _ := basichost.NewHost(context.Background(), helper.GenSwarm(port), &basichost.HostOpts{})
+	h, _ := basichost.NewHost(context.Background(), helper.GenSwarm(), &basichost.HostOpts{})
+	maddr, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", port))
+	if err!=nil {
+		panic(err)
+	}
+	h.Network().Listen(maddr)
+	h.Peerstore().AddAddrs(h.ID(),[]multiaddr.Multiaddr{maddr},peerstore.ProviderAddrTTL)
 	d, _ := dht.New(context.Background(), h)
 	return &Node{h, d}
 }
@@ -37,7 +43,7 @@ func (self *Node) Bootstrap(ctx context.Context) error {
 func (self *Node) Connect(ctx context.Context, bb *Node) {
 	a, b := self.Host, bb.Host
 	idB := b.ID()
-	addrB := b.Peerstore().Addrs(idB)
+	addrB := b.Network().Peerstore().Addrs(idB)
 	if len(addrB) == 0 {
 		fmt.Println("peers setup incorrectly: no local address")
 	}
@@ -64,10 +70,14 @@ func showPeerPretty(peers []peer.ID) string {
 func main() {
 	// group 1
 	n1 := NewLocalNode(40001)
+
 	n2 := NewLocalNode(40002)
+
 	n3 := NewLocalNode(40003)
+
 	// group 2
 	n4 := NewLocalNode(40004)
+
 	n5 := NewLocalNode(40005)
 
 	defer func() {
@@ -90,6 +100,7 @@ func main() {
 	fmt.Println(5, n5.Host.ID().Pretty(), showPeerPretty(n5.Host.Peerstore().Peers()))
 
 	err := n5.Bootstrap(context.Background())
+
 	fmt.Println("----> bootstrap:", err)
 	<-time.After(time.Second * 3)
 	fmt.Println(4, n4.Host.ID().Pretty(), showPeerPretty(n4.Host.Peerstore().Peers()))

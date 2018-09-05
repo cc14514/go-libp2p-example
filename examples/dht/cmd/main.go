@@ -242,8 +242,10 @@ func start(ctx *cli.Context) {
 		prv, _ = helper.GenKey(DATA_DIR)
 	}
 	port := ctx.GlobalInt("port")
-	node = helper.NewNode(prv, port)
+	node = helper.NewNode(prv,port)
+
 	log4go.Info("myid : %s", node.Host.ID().Pretty())
+	log4go.Info("myaddrs : %v", node.Host.Network().ListenAddresses())
 
 	if !isseed {
 		log4go.Info("BOOT_NODE -> %s", BOOT_NODE)
