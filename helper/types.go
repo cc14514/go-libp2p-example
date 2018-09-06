@@ -40,6 +40,7 @@ func libp2popts(key ic.PrivKey, port int) []libp2p.Option {
 	// set pk
 	libp2pOpts = append(libp2pOpts, libp2p.Identity(key))
 
+	// TODO 需要探测整个网络能监听的所有 ip
 	// listen address
 	libp2pOpts = append(libp2pOpts, libp2p.ListenAddrStrings(
 		fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", port),
@@ -62,17 +63,6 @@ func NewNode(key ic.PrivKey, port int) *Node {
 	if err != nil {
 		panic(err)
 	}
-	/*
-	s, _ := GenSwarmByKey(key)
-	h, _ := basichost.NewHost(ctx, s, &basichost.HostOpts{})
-	//TODO 需要探测整个网络能监听的所有 ip
-	maddr1, _ := ma.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", port))
-	maddr2, _ := ma.NewMultiaddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", port))
-
-	h.Network().Listen(maddr1, maddr2)
-
-	d, _ := dht.New(ctx, h, opts.NamespacedValidator("cc14514", blankValidator{}), )
-	*/
 	return &Node{host, d}
 }
 

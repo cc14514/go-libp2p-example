@@ -27,6 +27,7 @@ import (
 const (
 	// protocols
 	P_CHANNEL_FILE = protocol.ID("/channel/file")
+	P_CHANNEL_PING = protocol.ID("/channel/ping")
 )
 
 var (
@@ -144,6 +145,34 @@ scp <pid> <filepath>		copy <filepath> to pidNode's datadir/files for test transf
 			s.Close()
 			return nil, err
 		},
+		"ping": func(args ... string) (interface{}, error) {
+			if len(args) != 1 {
+				return nil, errors.New("fail params")
+			}
+			to := args[0]
+			tid, err := peer.IDB58Decode(to)
+			if err != nil {
+				return nil, err
+			}
+			s, err := node.Host.NewStream(context.Background(), tid, P_CHANNEL_PING)
+			if err != nil {
+				return nil, err
+			}
+			i, err := s.Write([]byte("ping"))
+			if err != nil {
+				return nil, err
+			}
+			log4go.Info("wait feedback. %d", i)
+			res := make([]byte, 4)
+			if i, e := s.Read(res); e == nil {
+				log4go.Info("(%d) remote recv : %s", i, string(res))
+			} else {
+				log4go.Error(e)
+			}
+			s.Close()
+
+			return nil, nil
+		},
 	}
 )
 
@@ -187,7 +216,7 @@ func init() {
 		go func() {
 			t := time.NewTicker(10 * time.Second)
 			for range t.C {
-				log4go.Info("total peer : %d",len(node.Host.Network().Conns()))
+				log4go.Info("total peer : %d", len(node.Host.Network().Conns()))
 				for i, c := range node.Host.Network().Conns() {
 					log4go.Debug("%d -> %s/ipfs/%s", i, c.RemoteMultiaddr().String(), c.RemotePeer().Pretty())
 				}
@@ -243,7 +272,7 @@ func start(ctx *cli.Context) {
 		prv, _ = helper.GenKey(DATA_DIR)
 	}
 	port := ctx.GlobalInt("port")
-	node = helper.NewNode(prv,port)
+	node = helper.NewNode(prv, port)
 
 	log4go.Info("myid : %s", node.Host.ID().Pretty())
 	log4go.Info("myaddrs : %v", node.Host.Network().ListenAddresses())
@@ -261,6 +290,24 @@ func start(ctx *cli.Context) {
 			log4go.Info("connect_success")
 		}
 	}
+
+	node.Host.SetStreamHandler(P_CHANNEL_PING, func(s inet.Stream) {
+		buf := make([]byte, 4)
+		if i, e := s.Read(buf); e != nil {
+			log4go.Error(e)
+			return
+		} else if i != 4 || "ping" != string(buf) {
+			log4go.Error("error : %d , %s", i, string(buf))
+			return
+		}
+		log4go.Info("%s from %s", string(buf), s.Conn().RemotePeer().Pretty())
+		t, err := s.Write([]byte("pong"))
+		if err != nil {
+			log4go.Error("error : %v", err)
+		}
+		log4go.Info("pong %d", t)
+		s.Close()
+	})
 
 	node.Host.SetStreamHandler(P_CHANNEL_FILE, func(s inet.Stream) {
 		rid := s.Conn().RemotePeer().Pretty()
