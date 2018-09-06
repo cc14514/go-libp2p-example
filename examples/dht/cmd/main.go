@@ -22,6 +22,7 @@ import (
 	"math/big"
 	"encoding/binary"
 	"gx/ipfs/QmNysBQN8FUSE2TKUYRFiMrn7Fiqk5RPeCz33cKaLa6syn/go-ipfs-addr"
+	pstore "gx/ipfs/QmYLXCWN2myozZpx8Wx4UjrRuQuhY3YtWoMi6SHaXii6aM/go-libp2p-peerstore"
 )
 
 const (
@@ -173,6 +174,26 @@ scp <pid> <filepath>		copy <filepath> to pidNode's datadir/files for test transf
 			s.Close()
 
 			return nil, nil
+		},
+		"relay": func(args ... string) (interface{}, error) {
+			if len(args) != 2 {
+				return nil, errors.New("fail params")
+			}
+			from,to := args[0],args[1]
+			fid, err := peer.IDB58Decode(from)
+			if err != nil {
+				return nil, err
+			}
+			tid, err := peer.IDB58Decode(to)
+			if err != nil {
+				return nil, err
+			}
+			addr, err := ma.NewMultiaddr(fmt.Sprintf("/ipfs/%s/p2p-circuit/ipfs/%s", fid.Pretty(), tid.Pretty()))
+			if err != nil {
+				log4go.Error(err)
+			}
+			node.Host.Peerstore().AddAddrs(tid, []ma.Multiaddr{addr}, pstore.TempAddrTTL)
+			return nil,nil
 		},
 	}
 )
