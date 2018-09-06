@@ -32,7 +32,7 @@ const (
 )
 
 var (
-	version             = "0.0.1"
+	version             = "0.0.2"
 	logLevel            = []log4go.Level{log4go.ERROR, log4go.WARNING, log4go.INFO, log4go.DEBUG}
 	app                 *cli.App
 	node                *helper.Node
