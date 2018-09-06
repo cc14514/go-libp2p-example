@@ -45,6 +45,7 @@ peers				show peers
 findpeer <id>			findpeer by peer.ID
 put <key> <value> 		put key value to dht
 get <key>			get value by key from dht
+ping <id>			ping peer.ID , success return pong 	
 conn <addr>			connect to addr , "/ip4/[ip]/tcp/[port]/ipfs/[pid]"	
 scp <pid> <filepath>		copy <filepath> to pidNode's datadir/files for test transfer
 `
