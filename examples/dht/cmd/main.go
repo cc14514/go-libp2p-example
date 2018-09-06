@@ -193,6 +193,7 @@ scp <pid> <filepath>		copy <filepath> to pidNode's datadir/files for test transf
 				log4go.Error(err)
 			}
 			node.Host.Peerstore().AddAddrs(tid, []ma.Multiaddr{addr}, pstore.TempAddrTTL)
+
 			return nil,nil
 		},
 	}
