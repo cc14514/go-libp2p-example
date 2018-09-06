@@ -8,7 +8,7 @@ import (
 	"bufio"
 	"strings"
 	"github.com/cc14514/go-libp2p-example/helper"
-	iaddr "gx/ipfs/QmWnUZVLLk2HKpZAMEsqW3EFNku1xGzG7bvvAHeEQQoi2V/go-ipfs-addr"
+	//iaddr "gx/ipfs/QmWnUZVLLk2HKpZAMEsqW3EFNku1xGzG7bvvAHeEQQoi2V/go-ipfs-addr"
 	ma "gx/ipfs/QmYmsdtJ3HsodkePE3eU3TsCaP2YvPZJ4LoXnNkDE5Tpt7/go-multiaddr"
 	"context"
 	"time"
@@ -21,6 +21,7 @@ import (
 	"bytes"
 	"math/big"
 	"encoding/binary"
+	"gx/ipfs/QmNysBQN8FUSE2TKUYRFiMrn7Fiqk5RPeCz33cKaLa6syn/go-ipfs-addr"
 )
 
 const (
@@ -57,7 +58,7 @@ scp <pid> <filepath>		copy <filepath> to pidNode's datadir/files for test transf
 		},
 		"conn": func(addrs ... string) (interface{}, error) {
 			for _, a := range addrs {
-				addr, err := iaddr.ParseString(a)
+				addr, err := ipfsaddr.ParseString(a)
 				if err != nil {
 					fmt.Println("addr_error :", a, err)
 				} else {
@@ -249,7 +250,7 @@ func start(ctx *cli.Context) {
 
 	if !isseed {
 		log4go.Info("BOOT_NODE -> %s", BOOT_NODE)
-		addr, _ := iaddr.ParseString(BOOT_NODE)
+		addr, _ := ipfsaddr.ParseString(BOOT_NODE)
 		id := addr.ID()
 		if id.Pretty() != node.Host.ID().Pretty() {
 			//TODO

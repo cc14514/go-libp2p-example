@@ -20,9 +20,9 @@
     },
     {
       "author": "why",
-      "hash": "QmWnUZVLLk2HKpZAMEsqW3EFNku1xGzG7bvvAHeEQQoi2V",
+      "hash": "QmNysBQN8FUSE2TKUYRFiMrn7Fiqk5RPeCz33cKaLa6syn",
       "name": "go-ipfs-addr",
-      "version": "0.1.19"
+      "version": "0.1.18"
     }
   ],
   "gxVersion": "0.12.1",

@@ -13,9 +13,9 @@ import (
 	"reflect"
 	pstore "gx/ipfs/QmYLXCWN2myozZpx8Wx4UjrRuQuhY3YtWoMi6SHaXii6aM/go-libp2p-peerstore"
 	"github.com/alecthomas/log4go"
-	"fmt"
+	"gx/ipfs/QmUDzeFgYrRmHL2hUB6NZmqcBVQtUzETwmFRUc9onfSSHr/go-libp2p"
 	"gx/ipfs/QmPMRK5yTc2KhnaxQN4R7vRqEfZo5hW1aF5x6W97RKnXZq/go-libp2p-circuit"
-	tpt "gx/ipfs/QmUMTtHxeyVJPrpcpvEQppH3uTf3g1NnkRC6C36LpXy2no/go-libp2p-transport"
+	"fmt"
 )
 
 type blankValidator struct{}
@@ -34,28 +34,46 @@ func NewLocalNode() *Node {
 	return &Node{h, d}
 }
 
+func libp2popts(key ic.PrivKey, port int) []libp2p.Option {
+	var libp2pOpts []libp2p.Option
+
+	// set pk
+	libp2pOpts = append(libp2pOpts, libp2p.Identity(key))
+
+	// listen address
+	libp2pOpts = append(libp2pOpts, libp2p.ListenAddrStrings(
+		fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", port),
+		fmt.Sprintf("/ip6/::/tcp/%d", port),
+	))
+
+	// 支持 relay
+	libp2pOpts = append(libp2pOpts, libp2p.EnableRelay(relay.OptHop))
+
+	return libp2pOpts
+}
+
 func NewNode(key ic.PrivKey, port int) *Node {
 	ctx := context.Background()
-	s, u := GenSwarmByKey(key)
+	host, err := libp2p.New(ctx, libp2popts(key, port)...)
+	if err != nil {
+		panic(err)
+	}
+	d, err := dht.New(ctx, host, opts.NamespacedValidator("cc14514", blankValidator{}), )
+	if err != nil {
+		panic(err)
+	}
+	/*
+	s, _ := GenSwarmByKey(key)
 	h, _ := basichost.NewHost(ctx, s, &basichost.HostOpts{})
 	//TODO 需要探测整个网络能监听的所有 ip
 	maddr1, _ := ma.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", port))
 	maddr2, _ := ma.NewMultiaddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", port))
 
-	//TODO 增加中继地址
-	n, ok := h.Network().(tpt.Network)
-	if !ok {
-		panic(fmt.Errorf("%v is not a transport network", h.Network()))
-	}
-	r, _ := relay.NewRelay(ctx, h, u)
-	err := n.AddTransport(r.Transport())
-	if err != nil {
-		panic(err)
-	}
-	h.Network().Listen(maddr1, maddr2, r.Listener().Multiaddr())
+	h.Network().Listen(maddr1, maddr2)
 
 	d, _ := dht.New(ctx, h, opts.NamespacedValidator("cc14514", blankValidator{}), )
-	return &Node{h, d}
+	*/
+	return &Node{host, d}
 }
 
 func (self *Node) Close() {
